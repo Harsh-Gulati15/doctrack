@@ -1,0 +1,119 @@
+{% if not pdf_mode %}{% extends "base.html" %}{% endif %}
+
+{% block title %}Report Result{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Report: {{ report_type }}</h2>
+    {% if not pdf_mode %}
+    <div>
+        <a href="{{ url_for('admin.download_csv', report_type=report_type) }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Download CSV
+        </a>
+        <a href="{{ url_for('admin.download_pdf', report_type=report_type) }}" class="btn btn-danger">
+            <i class="bi bi-file-earmark-pdf"></i> Download PDF
+        </a>
+        <a href="{{ url_for('admin.reports') }}" class="btn btn-secondary">Back to Reports</a>
+    </div>
+    {% endif %}
+</div>
+
+{% if data %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        {% if data is mapping %}
+                            <th>Key</th>
+                            <th>Value</th>
+                        {% else %}
+                            {% for key in data[0].keys() %}
+                            <th>{{ key|capitalize }}</th>
+                            {% endfor %}
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data is mapping %}
+                        {% for key, value in data.items() %}
+                        <tr>
+                            <td>{{ key }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        {% for row in data %}
+                        <tr>
+                            {% for value in row.values() %}
+                            <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No data found for the selected criteria.</div>
+{% endif %}
+{% endblock %}
+
+{% if pdf_mode %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report</title>
+    <style>
+        body { font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h2 { text-align: center; }
+    </style>
+</head>
+<body>
+    <h2>Report: {{ report_type }}</h2>
+
+    {% if data %}
+    <table>
+        <thead>
+            <tr>
+                {% if data is mapping %}
+                    <th>Key</th>
+                    <th>Value</th>
+                {% else %}
+                    {% for key in data[0].keys() %}
+                    <th>{{ key|capitalize }}</th>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% if data is mapping %}
+                {% for key, value in data.items() %}
+                <tr>
+                    <td>{{ key }}</td>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                {% for row in data %}
+                <tr>
+                    {% for value in row.values() %}
+                    <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No data found.</p>
+    {% endif %}
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Department' if department else 'Create Department' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ 'Edit Department' if department else 'Create New Department' }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Department Code</label>
+                        <input type="text" name="department_code" class="form-control" value="{{ department.department_code if department else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Department Name</label>
+                        <input type="text" name="department_name" class="form-control" value="{{ department.department_name if department else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Head User (Optional)</label>
+                        <select name="head_user_id" class="form-select">
+                            <option value="">None</option>
+                            {% for user in users %}
+                            <option value="{{ user.user_id }}" {% if department and department.head_user_id == user.user_id %}selected{% endif %}>
+                                {{ user.full_name }} ({{ user.username }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ 'Update Department' if department else 'Create Department' }}</button>
+                    <a href="{{ url_for('admin.departments') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

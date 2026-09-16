@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Admin Dashboard</h2>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Documents Today</h5>
+                <h2 class="mb-0">{{ docs_today }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pending Acknowledgements</h5>
+                <h2 class="mb-0">{{ pending_acks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-danger mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Overdue</h5>
+                <h2 class="mb-0">{{ overdue }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Total</h5>
+                <h2 class="mb-0">{{ monthly_total }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header">
+                Department-wise Volume (This Month)
+            </div>
+            <div class="card-body">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                Quick Links
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">Manage Users</a>
+                    <a href="{{ url_for('admin.departments') }}" class="btn btn-outline-secondary">Manage Departments</a>
+                    <a href="{{ url_for('admin.documents') }}" class="btn btn-outline-success">All Documents</a>
+                    <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-info">Generate Reports</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        Live Feed: 10 Most Recently Registered Documents
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Subject</th>
+                        <th>Sender</th>
+                        <th>Status</th>
+                        <th>Received On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in recent_docs %}
+                    <tr>
+                        <td><a href="{{ url_for('admin.document_detail', document_id=doc.document_id) }}">{{ doc.tracking_id }}</a></td>
+                        <td>{{ doc.subject_description }}</td>
+                        <td>{{ doc.sender_name }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ doc.status }}</span>
+                        </td>
+                        <td>{{ doc.date_received.strftime('%Y-%m-%d') if doc.date_received else '' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">No recent documents found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('deptChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ dept_labels | tojson }},
+                datasets: [{
+                    label: 'Documents',
+                    data: {{ dept_counts | tojson }},
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                }]
+            },
+            options: { 
+                responsive: true, 
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

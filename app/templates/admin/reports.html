@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Reports{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Reports</h2>
+
+<div class="row row-cols-1 row-cols-md-2 g-4">
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-header">Daily Inward Register</div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.generate_report') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="report_type" value="daily_inward">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-header">Pending Acknowledgements</div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.generate_report') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="report_type" value="pending_ack">
+                    <p class="text-muted">Shows all currently unacknowledged documents past notification phase.</p>
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-header">Overdue Documents</div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.generate_report') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="report_type" value="overdue">
+                    <p class="text-muted">Shows all currently escalated/overdue documents.</p>
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-header">Department-wise Volume</div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.generate_report') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="report_type" value="dept_volume">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-header">Document Type Distribution</div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.generate_report') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="report_type" value="type_dist">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

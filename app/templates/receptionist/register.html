@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Register Document - DocTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-file-earmark-plus"></i> Register New Document</h4>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('receptionist.register') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="date_received" class="form-label">Date Received <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date_received" name="date_received" value="{{ range(1,2)|map('now')|list|first|date('%Y-%m-%d')|default('2023-10-01', true) }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="time_received" class="form-label">Time Received <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="time_received" name="time_received" value="{{ range(1,2)|map('now')|list|first|date('%H:%M')|default('12:00', true) }}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="mode_of_receipt" class="form-label">Mode of Receipt <span class="text-danger">*</span></label>
+                        <select class="form-select" id="mode_of_receipt" name="mode_of_receipt" required>
+                            <option value="">Select mode...</option>
+                            <option value="courier">Courier</option>
+                            <option value="speed_post">Speed Post</option>
+                            <option value="registered_post">Registered Post</option>
+                            <option value="hand_delivery">Hand Delivery</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="number_of_pages" class="form-label">Number of Pages <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="number_of_pages" name="number_of_pages" min="1" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="sender_name" class="form-label">Sender Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="sender_name" name="sender_name" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="sender_organisation" class="form-label">Sender Organisation</label>
+                    <input type="text" class="form-control" id="sender_organisation" name="sender_organisation">
+                </div>
+
+                <div class="mb-3">
+                    <label for="sender_address" class="form-label">Sender Address</label>
+                    <textarea class="form-control" id="sender_address" name="sender_address" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="subject_description" class="form-label">Subject / Description <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="subject_description" name="subject_description" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="file_upload" class="form-label">Upload Document File (.pdf, .jpeg, .jpg, .png)</label>
+                    <input class="form-control" type="file" id="file_upload" name="file_upload" accept=".pdf,.jpeg,.jpg,.png">
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Register Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const d = new Date();
+        const dateStr = d.toISOString().split('T')[0];
+        const timeStr = d.toTimeString().split(' ')[0].substring(0,5);
+        document.getElementById('date_received').value = dateStr;
+        document.getElementById('time_received').value = timeStr;
+    });
+</script>
+{% endblock %}

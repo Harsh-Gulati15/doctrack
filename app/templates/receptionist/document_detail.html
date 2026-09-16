@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Document Detail - DocTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Document Details</h2>
+        <div>
+            {% if doc.status == 'categorised' %}
+            <a href="{{ url_for('receptionist.categorise', document_id=doc.document_id) }}" class="btn btn-warning"><i class="bi bi-tags"></i> Categorise</a>
+            {% endif %}
+            {% if doc.file_path %}
+            <a href="{{ url_for('receptionist.serve_file', document_id=doc.document_id) }}" target="_blank" class="btn btn-success"><i class="bi bi-file-earmark-pdf"></i> View File</a>
+            {% endif %}
+            <a href="{{ url_for('receptionist.documents') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">General Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Tracking ID</div>
+                        <div class="col-sm-8 fw-bold">{{ doc.tracking_id }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Status</div>
+                        <div class="col-sm-8">
+                            {% set status_badges = {'received': 'secondary', 'scanned': 'info', 'categorised': 'warning', 'routed': 'primary', 'notified': 'orange', 'acknowledged': 'success', 'escalated': 'danger', 'archived': 'dark'} %}
+                            <span class="badge bg-{{ status_badges.get(doc.status, 'secondary') }} fs-6">{{ doc.status|capitalize }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Date & Time Received</div>
+                        <div class="col-sm-8">{{ doc.date_received }} {{ doc.time_received }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Mode of Receipt</div>
+                        <div class="col-sm-8">{{ doc.mode_of_receipt|replace('_', ' ')|title }}</div>
+                    </div>
+                    <hr>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Sender Name</div>
+                        <div class="col-sm-8">{{ doc.sender_name }}</div>
+                    </div>
+                    {% if doc.sender_organisation %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Organisation</div>
+                        <div class="col-sm-8">{{ doc.sender_organisation }}</div>
+                    </div>
+                    {% endif %}
+                    {% if doc.sender_address %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Address</div>
+                        <div class="col-sm-8">{{ doc.sender_address }}</div>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Subject / Description</div>
+                        <div class="col-sm-8">{{ doc.subject_description }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted">Number of Pages</div>
+                        <div class="col-sm-8">{{ doc.number_of_pages }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% set cat = doc.categorisation|first if doc.categorisation is iterable and doc.categorisation is not string else doc.categorisation %}
+            {% if cat %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Categorisation Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Document Type</div>
+                        <div class="col-sm-8">{{ cat.document_type|replace('_', ' ')|title }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Suggested Department</div>
+                        <div class="col-sm-8">{{ cat.suggested_department.department_name if cat.suggested_department else 'N/A' }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Suggested User</div>
+                        <div class="col-sm-8">{{ cat.suggested_user.full_name if cat.suggested_user else 'N/A' }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Method</div>
+                        <div class="col-sm-8">{{ cat.method|replace('_', ' ')|title }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set routing = doc.routing|first if doc.routing is iterable and doc.routing is not string else doc.routing %}
+            {% if routing %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Routing Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Routed To Dept</div>
+                        <div class="col-sm-8">{{ routing.routed_department.department_name }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Routed To User</div>
+                        <div class="col-sm-8">{{ routing.routed_user.full_name }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">SLA Deadline</div>
+                        <div class="col-sm-8 {% if routing.sla_deadline < range(1,2)|map('now')|list|first and doc.status in ['routed', 'notified'] %}text-danger fw-bold{% endif %}">
+                            {{ routing.sla_deadline.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% set ack = doc.acknowledgement|first if doc.acknowledgement is iterable and doc.acknowledgement is not string else doc.acknowledgement %}
+            {% if ack %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Acknowledgement Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Acknowledged At</div>
+                        <div class="col-sm-8">{{ ack.acknowledged_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Remarks</div>
+                        <div class="col-sm-8">{{ ack.remarks or 'No remarks' }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-4 text-muted">Escalated</div>
+                        <div class="col-sm-8">{{ 'Yes' if ack.was_escalated else 'No' }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tracking Timeline</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for event in doc.tracking_events|sort(attribute='performed_at', reverse=true) %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ event.event_type }}</h6>
+                                <small class="text-muted">{{ event.performed_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1 small">{{ event.event_description }}</p>
+                            <small class="text-muted">By: {{ event.performer.full_name if event.performer else 'System' }}</small>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted text-center py-3">No tracking events found.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

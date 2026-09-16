@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Track Document{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4 border-0">
+                <div class="card-body bg-light rounded">
+                    <h4 class="card-title mb-3"><i class="bi bi-search"></i> Track Document</h4>
+                    <form method="GET" action="{{ url_for('department.track') }}" class="d-flex">
+                        <input type="text" name="tracking_id" class="form-control form-control-lg me-2" placeholder="Enter Tracking ID (e.g., DOC-YYYYMMDD-XXXX)" value="{{ tracking_id or '' }}" required>
+                        <button type="submit" class="btn btn-primary btn-lg px-4">Track</button>
+                    </form>
+                </div>
+            </div>
+
+            {% if document %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="mb-0">Document Status Summary</h5>
+                    {% if document.status == 'acknowledged' %}
+                        <span class="badge bg-success py-2 px-3">Acknowledged</span>
+                    {% elif document.status == 'escalated' %}
+                        <span class="badge bg-danger py-2 px-3">Escalated</span>
+                    {% else %}
+                        <span class="badge bg-primary py-2 px-3">{{ document.status|capitalize }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3 text-muted">Subject</dt>
+                        <dd class="col-sm-9">{{ document.subject_description }}</dd>
+                        
+                        <dt class="col-sm-3 text-muted">Sender</dt>
+                        <dd class="col-sm-9">{{ document.sender_name }}</dd>
+                        
+                        <dt class="col-sm-3 text-muted">Date Received</dt>
+                        <dd class="col-sm-9">{{ document.date_received.strftime('%Y-%m-%d') if document.date_received else 'N/A' }}</dd>
+                    </dl>
+                    <div class="mt-4 pt-3 border-top">
+                        <a href="{{ url_for('department.document_detail', document_id=document.document_id) }}" class="btn btn-outline-primary"><i class="bi bi-eye"></i> View Full Details</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Tracking Timeline</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for event in document.tracking_events|sort(attribute='performed_at', reverse=True) %}
+                        <li class="list-group-item p-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0">{{ event.event_type|replace('_', ' ')|title }}</h6>
+                                <small class="text-muted">{{ event.performed_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                            </div>
+                            <p class="mb-0 text-secondary">{{ event.event_description }}</p>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted text-center py-4">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No tracking history available for this document.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

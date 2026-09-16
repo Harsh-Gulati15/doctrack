@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="bi bi-shield-lock text-primary"></i> Audit Log</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('superadmin.export_csv', event_type=event_type, date_from=date_from, date_to=date_to, search=search) }}" class="btn btn-outline-primary">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white" data-bs-toggle="collapse" data-bs-target="#filterCollapse" style="cursor: pointer;">
+            <i class="bi bi-funnel"></i> Filters <i class="bi bi-chevron-down float-end"></i>
+        </div>
+        <div id="filterCollapse" class="collapse show">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('superadmin.audit_log') }}" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="event_type" class="form-label">Event Type</label>
+                        <select name="event_type" id="event_type" class="form-select">
+                            <option value="">All Events</option>
+                            {% for et in distinct_event_types %}
+                            <option value="{{ et }}" {% if et == event_type %}selected{% endif %}>{{ et }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">Date From</label>
+                        <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label">Date To</label>
+                        <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">Search Details</label>
+                        <input type="text" name="search" id="search" class="form-control" placeholder="Search..." value="{{ search or '' }}">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Filter</button>
+                        <a href="{{ url_for('superadmin.audit_log') }}" class="btn btn-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Event Type</th>
+                            <th>Document</th>
+                            <th>User</th>
+                            <th>IP Address</th>
+                            <th>Details</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.log_id }}</td>
+                            <td>
+                                {% if log.event_type == 'LOGIN' %}
+                                    <span class="badge bg-info">LOGIN</span>
+                                {% elif log.event_type == 'LOGOUT' %}
+                                    <span class="badge bg-secondary">LOGOUT</span>
+                                {% elif log.event_type == 'DOCUMENT_REGISTERED' %}
+                                    <span class="badge bg-primary">DOCUMENT_REGISTERED</span>
+                                {% elif log.event_type == 'DOCUMENT_ROUTED' %}
+                                    <span class="badge bg-success">DOCUMENT_ROUTED</span>
+                                {% elif log.event_type == 'ACKNOWLEDGED' %}
+                                    <span class="badge bg-success">ACKNOWLEDGED</span>
+                                {% elif log.event_type == 'ESCALATED' %}
+                                    <span class="badge bg-danger">ESCALATED</span>
+                                {% elif log.event_type == 'USER_CREATED' or log.event_type == 'USER_UPDATED' %}
+                                    <span class="badge bg-warning">{{ log.event_type }}</span>
+                                {% elif log.event_type == 'PURGE_ARCHIVED' %}
+                                    <span class="badge bg-dark">PURGE_ARCHIVED</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">{{ log.event_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.doc %}
+                                    <a href="{{ url_for('admin.document_detail', document_id=log.doc.document_id) if 'admin' in current_app.blueprints else '#' }}" class="text-decoration-none">{{ log.doc.tracking_id }}</a>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.user %}
+                                    {{ log.user.username }}
+                                {% else %}
+                                    <span class="text-muted">System</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.ip_address or '' }}</td>
+                            <td>{{ log.details or '' }}</td>
+                            <td>{{ log.logged_at.strftime('%Y-%m-%d %H:%M:%S') if log.logged_at else '' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No audit logs found matching your criteria.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('superadmin.audit_log', page=pagination.prev_num, event_type=event_type, date_from=date_from, date_to=date_to, search=search) if pagination.has_prev else '#' }}">Previous</a>
+            </li>
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('superadmin.audit_log', page=page_num, event_type=event_type, date_from=date_from, date_to=date_to, search=search) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('superadmin.audit_log', page=pagination.next_num, event_type=event_type, date_from=date_from, date_to=date_to, search=search) if pagination.has_next else '#' }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Danger Zone -->
+    <div class="card border-danger mt-5">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-exclamation-triangle-fill"></i> Danger Zone
+        </div>
+        <div class="card-body">
+            <h5 class="card-title text-danger">Purge Archived Documents</h5>
+            <p class="card-text text-muted">Permanently delete all documents with status "archived" and all related records (cascade). This action cannot be undone.</p>
+            <form method="POST" action="{{ url_for('superadmin.purge_archived') }}" onsubmit="if (!confirm('Are you sure you want to permanently delete all archived documents? This action cannot be undone.')) { event.preventDefault(); return false; }">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Purge Archived Documents
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

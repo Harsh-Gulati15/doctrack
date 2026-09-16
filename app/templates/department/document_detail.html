@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Document Detail - {{ document.tracking_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Document: {{ document.tracking_id }}</h2>
+        <a href="{{ url_for('department.my_documents') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Document Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Tracking ID</dt>
+                        <dd class="col-sm-8 fw-bold">{{ document.tracking_id }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Received On</dt>
+                        <dd class="col-sm-8">
+                            {{ document.date_received.strftime('%Y-%m-%d') if document.date_received else 'N/A' }}
+                            {{ document.time_received.strftime('%H:%M:%S') if document.time_received else '' }}
+                        </dd>
+
+                        <dt class="col-sm-4 text-muted">Mode of Receipt</dt>
+                        <dd class="col-sm-8">{{ document.mode_of_receipt|replace('_', ' ')|title }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Sender Name</dt>
+                        <dd class="col-sm-8">{{ document.sender_name }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Sender Organisation</dt>
+                        <dd class="col-sm-8">{{ document.sender_organisation or 'N/A' }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Sender Address</dt>
+                        <dd class="col-sm-8">{{ document.sender_address or 'N/A' }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Subject / Description</dt>
+                        <dd class="col-sm-8">{{ document.subject_description }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Number of Pages</dt>
+                        <dd class="col-sm-8">{{ document.number_of_pages or 'N/A' }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if document.categorisation %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Categorisation</h5>
+                </div>
+                <div class="card-body">
+                    {% set cat = document.categorisation[-1] %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Document Type</dt>
+                        <dd class="col-sm-8">{{ cat.document_type|replace('_', ' ')|title }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Suggested Department</dt>
+                        <dd class="col-sm-8">{{ cat.suggested_department.department_name if cat.suggested_department else 'N/A' }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Method</dt>
+                        <dd class="col-sm-8">{{ cat.method|replace('_', ' ')|title }}</dd>
+
+                        <dt class="col-sm-4 text-muted">Confidence Score</dt>
+                        <dd class="col-sm-8">{{ "%.2f"|format(cat.confidence_score) if cat.confidence_score else 'N/A' }}</dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tracking Timeline</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for event in document.tracking_events|sort(attribute='performed_at', reverse=True) %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ event.event_type|replace('_', ' ')|title }}</h6>
+                                <small class="text-muted">{{ event.performed_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                            </div>
+                            <p class="mb-1 small">{{ event.event_description }}</p>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No tracking events found.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> File Attachment</h5>
+                </div>
+                <div class="card-body">
+                    {% if document.file_path %}
+                        <a href="{{ url_for('department.serve_file', document_id=document.document_id) }}" target="_blank" class="btn btn-outline-info w-100">
+                            <i class="bi bi-download"></i> View / Download File
+                        </a>
+                    {% else %}
+                        <p class="text-muted mb-0">No file attached to this document.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Routing Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if routing %}
+                    <div class="mb-2"><strong>Routed To:</strong> {{ routing.routed_user.full_name or routing.routed_user.username if routing.routed_user else 'N/A' }}</div>
+                    <div class="mb-2"><strong>Routed By:</strong> {{ routing.router.full_name or routing.router.username if routing.router else 'N/A' }}</div>
+                    <div class="mb-2"><strong>Routed At:</strong> {{ routing.routed_at.strftime('%Y-%m-%d %H:%M:%S') if routing.routed_at else 'N/A' }}</div>
+                    <div class="mb-0">
+                        <strong>SLA Deadline:</strong> 
+                        {% if routing.sla_deadline %}
+                            {{ routing.sla_deadline.strftime('%Y-%m-%d %H:%M') }}
+                            {% if document.status == 'escalated' %}
+                                <span class="badge bg-danger ms-1">Overdue</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No routing information for current user.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Acknowledgement</h5>
+                </div>
+                <div class="card-body">
+                    {% set ack = document.acknowledgement[-1] if document.acknowledgement else None %}
+                    {% if ack %}
+                        <div class="alert alert-success py-2 mb-3">
+                            <i class="bi bi-check-circle-fill me-1"></i> Acknowledged
+                        </div>
+                        <div class="mb-2"><strong>By:</strong> {{ ack.acknowledged_by_user.full_name or ack.acknowledged_by_user.username if ack.acknowledged_by_user else ack.acknowledged_by }}</div>
+                        <div class="mb-2"><strong>At:</strong> {{ ack.acknowledged_at.strftime('%Y-%m-%d %H:%M:%S') if ack.acknowledged_at else 'N/A' }}</div>
+                        <div class="mb-0"><strong>Remarks:</strong> {{ ack.remarks or 'None' }}</div>
+                    {% elif document.status in ('notified', 'escalated', 'routed') %}
+                        <form method="POST" action="{{ url_for('department.acknowledge', document_id=document.document_id) }}" onsubmit="return confirm('Are you sure you want to acknowledge this document?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="mb-3">
+                                <label for="remarks" class="form-label">Remarks (Optional)</label>
+                                <textarea class="form-control" id="remarks" name="remarks" rows="3" placeholder="Add any comments here..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100"><i class="bi bi-check2-square"></i> Acknowledge Receipt</button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-secondary py-2 mb-0">
+                            Acknowledgement not applicable at this stage.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

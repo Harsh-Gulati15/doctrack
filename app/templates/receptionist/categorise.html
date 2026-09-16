@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Categorise Document - DocTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Categorise Document</h2>
+        <a href="{{ url_for('receptionist.document_detail', document_id=doc.document_id) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Document</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> AI Suggestion</h5>
+                </div>
+                <div class="card-body">
+                    {% if categorisation %}
+                        <div class="mb-3">
+                            <strong>Suggested Department:</strong> 
+                            {{ categorisation.suggested_department.department_name if categorisation.suggested_department else 'Unknown' }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Suggested Document Type:</strong> 
+                            {{ categorisation.document_type|replace('_', ' ')|title if categorisation.document_type else 'Unknown' }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Confidence Score:</strong>
+                            {% set score = (categorisation.confidence_score|default(0) * 100)|round|int %}
+                            <div class="d-flex align-items-center mt-1">
+                                <div class="progress flex-grow-1" style="height: 20px;">
+                                    {% if score >= 75 %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ score }}%;" aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100">{{ score }}%</div>
+                                    {% elif score >= 50 %}
+                                        <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: {{ score }}%;" aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100">{{ score }}%</div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ score }}%;" aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100">{{ score }}%</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if categorisation.method %}
+                        <div class="mb-3 text-muted small">
+                            <em>Method: {{ categorisation.method }}</em>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No AI suggestion available for this document.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Document Snippet</h5>
+                </div>
+                <div class="card-body">
+                    <strong>Subject:</strong> {{ doc.subject_description }}<br><br>
+                    <strong>Sender:</strong> {{ doc.sender_name }}<br>
+                    {% if doc.ocr_text %}
+                        <hr>
+                        <strong>OCR Extracted Text (Preview):</strong>
+                        <div class="mt-2 p-2 bg-light border rounded" style="max-height: 150px; overflow-y: auto; font-size: 0.85rem;">
+                            {{ doc.ocr_text[:500] }}...
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-check2-circle"></i> Confirm & Route</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('receptionist.categorise', document_id=doc.document_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">Route to Department</label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">Select a department...</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.department_id }}" {% if categorisation and categorisation.suggested_department_id == dept.department_id %}selected{% endif %}>{{ dept.department_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">Route to User</label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="">Select a user...</option>
+                                {% for user in initial_users %}
+                                <option value="{{ user.user_id }}" {% if categorisation and categorisation.suggested_user_id == user.user_id %}selected{% endif %}>{{ user.full_name }} ({{ user.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="document_type" class="form-label">Document Type</label>
+                            <select class="form-select" id="document_type" name="document_type" required>
+                                {% set types = ['circular', 'legal_notice', 'tender', 'bill', 'correspondence', 'audit', 'other'] %}
+                                <option value="">Select document type...</option>
+                                {% for t in types %}
+                                <option value="{{ t }}" {% if categorisation and categorisation.document_type == t %}selected{% endif %}>{{ t|replace('_', ' ')|title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-send-fill"></i> Route Document</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deptSelect = document.getElementById('department_id');
+    const userSelect = document.getElementById('user_id');
+    
+    // Suggestion defaults
+    const suggestedUserId = "{{ categorisation.suggested_user_id if categorisation else '' }}";
+    
+    deptSelect.addEventListener('change', function() {
+        const deptId = this.value;
+        userSelect.innerHTML = '<option value="">Loading users...</option>';
+        
+        if (!deptId) {
+            userSelect.innerHTML = '<option value="">Select a user...</option>';
+            return;
+        }
+        
+        fetch(`{{ url_for('receptionist.get_users_by_dept', department_id=0) }}`.replace('0', deptId))
+            .then(response => response.json())
+            .then(data => {
+                userSelect.innerHTML = '<option value="">Select a user...</option>';
+                data.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    if (user.id == suggestedUserId) {
+                        option.selected = true;
+                    }
+                    userSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching users:', error);
+                userSelect.innerHTML = '<option value="">Error loading users</option>';
+            });
+    });
+    
+    // trigger change on load if not already populated with correct users
+    // If not matching, trigger fetch
+    if(deptSelect.value && userSelect.options.length <= 1) {
+        deptSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Track Document - DocTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <h3 class="mb-4">Track Document Status</h3>
+                    <form method="GET" action="{{ url_for('receptionist.track') }}" class="d-flex justify-content-center">
+                        <div class="input-group input-group-lg" style="max-width: 500px;">
+                            <input type="text" class="form-control" name="tracking_id" value="{{ tracking_id }}" placeholder="Enter Tracking ID (e.g. DOC-2023-00001)" required>
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Track</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if doc %}
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Document Info</h5>
+                </div>
+                <div class="card-body">
+                    <h4 class="text-primary mb-3">{{ doc.tracking_id }}</h4>
+                    <table class="table table-borderless table-sm">
+                        <tbody>
+                            <tr>
+                                <th class="text-muted w-25">Status</th>
+                                <td>
+                                    {% set status_badges = {'received': 'secondary', 'scanned': 'info', 'categorised': 'warning', 'routed': 'primary', 'notified': 'orange', 'acknowledged': 'success', 'escalated': 'danger', 'archived': 'dark'} %}
+                                    <span class="badge bg-{{ status_badges.get(doc.status, 'secondary') }} fs-6">{{ doc.status|capitalize }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Received</th>
+                                <td>{{ doc.date_received }} {{ doc.time_received }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Sender</th>
+                                <td>{{ doc.sender_name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Subject</th>
+                                <td>{{ doc.subject_description }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-3">
+                        <a href="{{ url_for('receptionist.document_detail', document_id=doc.document_id) }}" class="btn btn-outline-primary btn-sm">View Full Details</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tracking Timeline</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for event in doc.tracking_events|sort(attribute='performed_at', reverse=true) %}
+                        <li class="list-group-item p-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <h6 class="mb-1 text-primary">{{ event.event_type }}</h6>
+                                <small class="text-muted bg-light px-2 py-1 rounded border"><i class="bi bi-clock"></i> {{ event.performed_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1 mt-2">{{ event.event_description }}</p>
+                            <small class="text-muted">By: {{ event.performer.full_name if event.performer else 'System' }}</small>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-center text-muted p-4">
+                            No tracking events found for this document.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}My Documents{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h2 class="mb-3 mb-md-0">My Documents</h2>
+        <form class="d-flex" method="GET" action="{{ url_for('department.my_documents') }}">
+            <select name="status" class="form-select me-2" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="routed" {% if status_filter == 'routed' %}selected{% endif %}>Routed</option>
+                <option value="notified" {% if status_filter == 'notified' %}selected{% endif %}>Notified</option>
+                <option value="escalated" {% if status_filter == 'escalated' %}selected{% endif %}>Escalated</option>
+                <option value="acknowledged" {% if status_filter == 'acknowledged' %}selected{% endif %}>Acknowledged</option>
+            </select>
+            <noscript><button type="submit" class="btn btn-primary">Filter</button></noscript>
+        </form>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tracking ID</th>
+                            <th>Date Received</th>
+                            <th>Sender</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>SLA Deadline</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in pagination.items %}
+                        <tr>
+                            <td><a href="{{ url_for('department.document_detail', document_id=doc.document_id) }}" class="fw-bold">{{ doc.tracking_id }}</a></td>
+                            <td>{{ doc.date_received.strftime('%Y-%m-%d') if doc.date_received else 'N/A' }}</td>
+                            <td>{{ doc.sender_name }}</td>
+                            <td>{{ doc.subject_description | truncate(40) }}</td>
+                            <td>
+                                {% if doc.status == 'notified' %}
+                                    <span class="badge bg-warning text-dark">Notified</span>
+                                {% elif doc.status == 'escalated' %}
+                                    <span class="badge bg-danger">Escalated</span>
+                                {% elif doc.status == 'acknowledged' %}
+                                    <span class="badge bg-success">Acknowledged</span>
+                                {% elif doc.status == 'routed' %}
+                                    <span class="badge bg-primary">Routed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ doc.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set routing = doc.routing|selectattr("routed_to_user_id", "equalto", current_user.user_id)|first %}
+                                {% if routing and routing.sla_deadline %}
+                                    {{ routing.sla_deadline.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('department.document_detail', document_id=doc.document_id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No documents found matching your criteria.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('department.my_documents', page=pagination.prev_num, status=status_filter) if pagination.has_prev else '#' }}">Previous</a>
+            </li>
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('department.my_documents', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('department.my_documents', page=pagination.next_num, status=status_filter) if pagination.has_next else '#' }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
